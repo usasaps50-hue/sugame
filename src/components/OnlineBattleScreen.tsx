@@ -284,6 +284,10 @@ export default function OnlineBattleScreen({ isHost, roomCode, myTeam, opponentT
       const a = aMap[skill.id]; if (a) playerGoryoRef.current?.playAnimation(a as any);
     }
 
+    // shake は updater 外で呼ぶ（updater 内で setState を呼ぶのは React 規約違反）
+    const ENEMY_SHAKE_IDS = new Set(['s10','s14','s15','s16','s19','s20','s22','s24','s26','s27','s33','s38','s39','s44','s45','s49','s50','s51','s56','s57','s62']);
+    if (skill.type === 'attack' || ENEMY_SHAKE_IDS.has(skill.id)) shake('enemy');
+
     setGameState(prev => {
       let next = { ...prev };
       let newPlayerMonster = { ...activePlayer };
@@ -293,35 +297,35 @@ export default function OnlineBattleScreen({ isHost, roomCode, myTeam, opponentT
 
       // ─── スキル効果（BattleScreen の handleSkill と同じ）───────────────
       if (skill.id === 's9') { next.playerDodgeActive = true; logs.push(`${activePlayer.name}が水の中へ！回避！`); }
-      else if (skill.id === 's10') { const d = activeEnemy.isWaterType?60:30; newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); newPlayerMonster.attacksGiven=(newPlayerMonster.attacksGiven??0)+1; logs.push(`食欲旺盛！${d}ダメージ！`); }
+      else if (skill.id === 's10') { const d = activeEnemy.isWaterType?60:30; newEnemyHp=Math.max(0,newEnemyHp-d); newPlayerMonster.attacksGiven=(newPlayerMonster.attacksGiven??0)+1; logs.push(`食欲旺盛！${d}ダメージ！`); }
       else if (skill.id === 's11') { next.tailGatlingActive=true; next.tailGatlingTurn=1; logs.push(`テールマシンガン発動！`); }
       else if (skill.id === 's12') { next.criticalMomentActive=true; logs.push(`危機一髪！`); }
       else if (skill.id === 's13') { newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+16); logs.push(`弱肉強食！HP+16！`); }
-      else if (skill.id === 's14') { newEnemyHp=Math.max(0,newEnemyHp-42); shake('enemy'); next.playerStunTurns=1; next.playerNoEnergyNextTurn=true; newPlayerMonster.attacksGiven=(newPlayerMonster.attacksGiven??0)+1; logs.push(`DEATHパンチ！42ダメージ！次ターン行動不能`); }
-      else if (skill.id === 's15') { let d=15; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); logs.push(`焼きたてタックル！${d}ダメージ！`); }
-      else if (skill.id === 's16') { let d=20; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); logs.push(`トースト連続発射！${d}ダメージ！`); }
+      else if (skill.id === 's14') { newEnemyHp=Math.max(0,newEnemyHp-42); next.playerStunTurns=1; next.playerNoEnergyNextTurn=true; newPlayerMonster.attacksGiven=(newPlayerMonster.attacksGiven??0)+1; logs.push(`DEATHパンチ！42ダメージ！次ターン行動不能`); }
+      else if (skill.id === 's15') { let d=15; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); logs.push(`焼きたてタックル！${d}ダメージ！`); }
+      else if (skill.id === 's16') { let d=20; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); logs.push(`トースト連続発射！${d}ダメージ！`); }
       else if (skill.id === 's17') { next.enemyDamageDebuff=(prev.enemyDamageDebuff??0)+1; logs.push(`コンセント抜き！`); }
       else if (skill.id === 's18') { newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+20); logs.push(`パンくず補給！HP+20！`); }
-      else if (skill.id === 's19') { let d=45; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); newPlayerMonster.hp=Math.max(1,newPlayerMonster.hp-10); logs.push(`オーバーヒート！${d}ダメージ！反動10`); }
-      else if (skill.id === 's20') { let d=60; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+15); next.playerStunTurns=2; logs.push(`フルブレックファスト！${d}ダメージ！2ターン行動不能`); }
+      else if (skill.id === 's19') { let d=45; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); newPlayerMonster.hp=Math.max(1,newPlayerMonster.hp-10); logs.push(`オーバーヒート！${d}ダメージ！反動10`); }
+      else if (skill.id === 's20') { let d=60; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+15); next.playerStunTurns=2; logs.push(`フルブレックファスト！${d}ダメージ！2ターン行動不能`); }
       else if (skill.id === 's21') { const g=Math.floor(Math.random()*3)+1; next.tapiocaStock=Math.min(6,prev.tapiocaStock+g); logs.push(`タピオカ生成！×${g}（計${next.tapiocaStock}）`); }
-      else if (skill.id === 's22') { const u=Math.min(3,prev.tapiocaStock); const d=u*12; newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); next.tapiocaStock=prev.tapiocaStock-u; logs.push(`プチプチ弾！×${u}、${d}ダメージ！`); }
+      else if (skill.id === 's22') { const u=Math.min(3,prev.tapiocaStock); const d=u*12; newEnemyHp=Math.max(0,newEnemyHp-d); next.tapiocaStock=prev.tapiocaStock-u; logs.push(`プチプチ弾！×${u}、${d}ダメージ！`); }
       else if (skill.id === 's23') { next.playerDamageHalf=true; logs.push(`甘すぎる誘惑！次のターンダメージ半減！`); }
-      else if (skill.id === 's24') { const d=15; newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+d); logs.push(`ストロー吸引！15ダメージ＋HP15回復！`); }
+      else if (skill.id === 's24') { const d=15; newEnemyHp=Math.max(0,newEnemyHp-d); newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+d); logs.push(`ストロー吸引！15ダメージ＋HP15回復！`); }
       else if (skill.id === 's25') { next.playerDamageNullify=true; logs.push(`もちもちバリア！次の攻撃を無効！`); }
-      else if (skill.id === 's26') { const u=prev.tapiocaStock; const d=u*15; newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); next.tapiocaStock=0; next.energy=0; logs.push(`タピオカラッシュ！×${u}全消費、${d}ダメージ！`); }
-      else if (skill.id === 's27') { let d=20; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); logs.push(`居合・小枝斬り！${d}ダメージ！`); }
+      else if (skill.id === 's26') { const u=prev.tapiocaStock; const d=u*15; newEnemyHp=Math.max(0,newEnemyHp-d); next.tapiocaStock=0; next.energy=0; logs.push(`タピオカラッシュ！×${u}全消費、${d}ダメージ！`); }
+      else if (skill.id === 's27') { let d=20; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); logs.push(`居合・小枝斬り！${d}ダメージ！`); }
       else if (skill.id === 's28') { next.bonsaiGuardThisTurn=true; next.bonsaiBonusEnergyNextTurn=true; next.bonsaiPhotoCount=(prev.bonsaiPhotoCount??0)+1; logs.push(`光合成の構え！`); }
       else if (skill.id === 's29') { next.bonsaiMineActive=true; next.bonsaiMineTurnsLeft=2; logs.push(`松ぼっくり地雷設置！`); }
       else if (skill.id === 's30') { newPlayerMonster.hp=Math.max(1,newPlayerMonster.hp-20); next.bonsaiNextAttackDouble=true; logs.push(`捨て身の剪定！HP-20、次攻撃2倍！`); }
       else if (skill.id === 's31') { next.bonsaiRootActive=true; next.bonsaiRootTurnsLeft=3; logs.push(`根を張る！3ターンHP+10/turn`); }
       else if (skill.id === 's32') { next.bonsaiSekkenCharging=true; logs.push(`秘剣チャージ！次ターン発動！`); }
-      else if (skill.id === 's33') { const u=Math.min(5,prev.potatoStock); const d=u*5; newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); next.potatoStock=prev.potatoStock-u; logs.push(`ポテト投げ！×${u}、${d}ダメージ！`); }
+      else if (skill.id === 's33') { const u=Math.min(5,prev.potatoStock); const d=u*5; newEnemyHp=Math.max(0,newEnemyHp-d); next.potatoStock=prev.potatoStock-u; logs.push(`ポテト投げ！×${u}、${d}ダメージ！`); }
       else if (skill.id === 's34') { next.saltDebuffActive=true; next.saltDebuffTurnsLeft=4; logs.push(`しおかけ！4ターンエナジー回復-1！`); }
       else if (skill.id === 's35') { next.ketchupBarrierActive=true; next.ketchupBarrierTurnsLeft=3; logs.push(`ケチャップバリア！3ターン被ダメ10%減！`); }
       else if (skill.id === 's36') { next.burgerOrderActive=true; logs.push(`バーガーお急ぎ注文！`); }
       else if (skill.id === 's37') { next.potatoStock=Math.min(10,prev.potatoStock+5); logs.push(`ポテト追加注文！+5本`); }
-      else if (skill.id === 's38') { const u=prev.potatoStock+5; const d=u*4; newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); next.potatoStock=0; logs.push(`ポテトLサイズ！×${u}、${d}ダメージ！`); }
+      else if (skill.id === 's38') { const u=prev.potatoStock+5; const d=u*4; newEnemyHp=Math.max(0,newEnemyHp-d); next.potatoStock=0; logs.push(`ポテトLサイズ！×${u}、${d}ダメージ！`); }
       else if (skill.id === 's39') {
         let d=0; let hz=false;
         if(prev.saitoLimitBreakActive){d=30;logs.push(`🌟 限界突破ガチャ！30ダメージ！`);}
@@ -329,35 +333,35 @@ export default function OnlineBattleScreen({ isHost, roomCode, myTeam, opponentT
         else if(prev.saitoKitaiChi>=8){d=Math.random()<0.5?20:30;logs.push(`期待値高し！${d}ダメージ！`);}
         else{const r=Math.random();d=r<0.33?10:r<0.66?20:30;hz=d===10;}
         if(hz){next.saitoHazureCount=prev.saitoHazureCount+1;logs.push(`ハズレ…10ダメージ（${next.saitoHazureCount}回）`);}
-        newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy');
+        newEnemyHp=Math.max(0,newEnemyHp-d);
       }
       else if (skill.id === 's40') { const le=Math.floor(Math.random()*3)+1; const lk=Math.floor(Math.random()*8)+1; const mul=prev.tosaSanpanActive?2:1; next.energy=Math.min(10,prev.energy+le*mul); next.saitoKitaiChi=Math.min(15,prev.saitoKitaiChi+lk*mul); if(next.saitoKitaiChi>=11&&!prev.saitoLimitBreakActive)next.saitoLimitBreakActive=true; logs.push(`ラッキー！エナジー+${le*mul}、期待値+${lk*mul}！`); }
       else if (skill.id === 's41') { next.energy=10; next.saitoKitaiChi=10; next.saitoBorrowActive=true; next.saitoBorrowTurnsLeft=3; logs.push(`借金！エナジー&期待値MAX！3ターン後0`); }
       else if (skill.id === 's42') { next.saitoSSRActive=true; logs.push(`SSR確定演出！`); }
       else if (skill.id === 's43') { const h=prev.saitoLimitBreakActive?60:10+Math.floor(prev.saitoKitaiChi*3); newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+h); logs.push(`やけ酒！HP+${h}！`); }
       else if (skill.id === 's44') {
-        if(prev.saitoLimitBreakActive){const d=Math.floor(activeEnemy.hp*3/4);newEnemyHp=Math.max(0,activeEnemy.hp-d);shake('enemy');next.saitoKitaiChi=0;next.saitoLimitBreakActive=false;logs.push(`🌟 限界突破クライマックス！${d}ダメージ！`);}
-        else{const d=Math.floor(activeEnemy.hp*2/3);newEnemyHp=Math.max(0,activeEnemy.hp-d);shake('enemy');next.saitoKitaiChi=4;next.saitoHazureCount=0;logs.push(`🎆 クライマックス！${d}ダメージ！`);}
+        if(prev.saitoLimitBreakActive){const d=Math.floor(activeEnemy.hp*3/4);newEnemyHp=Math.max(0,activeEnemy.hp-d);next.saitoKitaiChi=0;next.saitoLimitBreakActive=false;logs.push(`🌟 限界突破クライマックス！${d}ダメージ！`);}
+        else{const d=Math.floor(activeEnemy.hp*2/3);newEnemyHp=Math.max(0,activeEnemy.hp-d);next.saitoKitaiChi=4;next.saitoHazureCount=0;logs.push(`🎆 クライマックス！${d}ダメージ！`);}
       }
-      else if (skill.id === 's45') { newEnemyHp=Math.max(0,newEnemyHp-10); shake('enemy'); next.enemyBugCount=prev.enemyBugCount+1; logs.push(`スパム送信！10ダメージ＋バグ🐛`); }
+      else if (skill.id === 's45') { newEnemyHp=Math.max(0,newEnemyHp-10); next.enemyBugCount=prev.enemyBugCount+1; logs.push(`スパム送信！10ダメージ＋バグ🐛`); }
       else if (skill.id === 's46') { next.enemyDamageDebuff=(prev.enemyDamageDebuff??0)+2; next.enemyBugCount=prev.enemyBugCount+1; logs.push(`重い処理！エナジーデバフ＋バグ🐛`); }
       else if (skill.id === 's47') { next.enemyDamageDebuff=(prev.enemyDamageDebuff??0)+3; logs.push(`パスワードクラック！`); }
       else if (skill.id === 's48') { next.copyPasteActive=true; logs.push(`コピペ！次の攻撃を反射！`); }
-      else if (skill.id === 's49') { newEnemyHp=Math.max(0,newEnemyHp-15); shake('enemy'); newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+15); next.enemyDamageDebuff=(prev.enemyDamageDebuff??0)+2; logs.push(`ランサムウェア！15ダメージ＋HP吸収！`); }
-      else if (skill.id === 's50') { newEnemyHp=Math.max(0,newEnemyHp-70); shake('enemy'); next.enemyBugCount=0; logs.push(`💥 ブルースクリーン！70ダメージ！`); }
-      else if (skill.id === 's51') { let d=15; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); logs.push(`資材ぶん投げ！${d}ダメージ！`); }
+      else if (skill.id === 's49') { newEnemyHp=Math.max(0,newEnemyHp-15); newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+15); next.enemyDamageDebuff=(prev.enemyDamageDebuff??0)+2; logs.push(`ランサムウェア！15ダメージ＋HP吸収！`); }
+      else if (skill.id === 's50') { newEnemyHp=Math.max(0,newEnemyHp-70); next.enemyBugCount=0; logs.push(`💥 ブルースクリーン！70ダメージ！`); }
+      else if (skill.id === 's51') { let d=15; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); logs.push(`資材ぶん投げ！${d}ダメージ！`); }
       else if (skill.id === 's52') { next.buildingFloor=prev.buildingFloor+3; newPlayerMonster.hp=Math.max(1,newPlayerMonster.hp-10); logs.push(`突貫工事！階層+3（→${next.buildingFloor}階）`); }
       else if (skill.id === 's53') { next.earthquakeProofActive=true; logs.push(`耐震偽装！次ターン被ダメ0！`); }
       else if (skill.id === 's54') { const h=prev.buildingFloor*5; newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+h); logs.push(`家賃収入！HP+${h}！`); }
       else if (skill.id === 's55') { next.enemyDamageDebuff=99; logs.push(`屋上からの絶景！敵エナジー0！`); }
-      else if (skill.id === 's56') { const d=Math.min(150,prev.buildingFloor*15); newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); newPlayerMonster.hp=Math.max(1,newPlayerMonster.hp-30); next.buildingFloor=0; logs.push(`💥 ビルヂング大崩落！${d}ダメージ！`); }
-      else if (skill.id === 's57') { newEnemyHp=Math.max(0,newEnemyHp-10); shake('enemy'); logs.push(`小銭投げ！10ダメージ🦊`); }
+      else if (skill.id === 's56') { const d=Math.min(150,prev.buildingFloor*15); newEnemyHp=Math.max(0,newEnemyHp-d); newPlayerMonster.hp=Math.max(1,newPlayerMonster.hp-30); next.buildingFloor=0; logs.push(`💥 ビルヂング大崩落！${d}ダメージ！`); }
+      else if (skill.id === 's57') { newEnemyHp=Math.max(0,newEnemyHp-10); logs.push(`小銭投げ！10ダメージ🦊`); }
       else if (skill.id === 's58') { next.enemyEnergy=10; next.tosaAttackKaritateActive=true; next.tosaAttackKaritateTurnsLeft=3; logs.push(`押し貸し！敵エナジーMAX＋取り立て3ターン🦊`); }
       else if (skill.id === 's59') { next.tosaDantanActive=true; next.saitoKitaiChi=Math.max(0,prev.saitoKitaiChi-3); logs.push(`担保没収！次の敵回復をダメージ変換🦊`); }
       else if (skill.id === 's60') { next.tosaFreezeActive=true; next.saitoKitaiChi=Math.max(0,prev.saitoKitaiChi-3); logs.push(`口座凍結！次ターン高コスト封印🦊`); }
       else if (skill.id === 's61') { next.tosaAttackKaritateDouble=true; next.saitoKitaiChi=Math.max(0,prev.saitoKitaiChi-2); logs.push(`利子倍プッシュ！取り立て2倍🦊`); }
-      else if (skill.id === 's62') { next.enemyEnergy=0; newEnemyHp=Math.floor(activeEnemy.hp/2); shake('enemy'); next.energy=0; next.tosaSanpanActive=true; logs.push(`自己破産手続き！敵エナジー0・HP半分🦊`); }
-      else if (skill.type === 'attack') { let d=skill.value; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); shake('enemy'); logs.push(`${skill.name}！${d}ダメージ。`); }
+      else if (skill.id === 's62') { next.enemyEnergy=0; newEnemyHp=Math.floor(activeEnemy.hp/2); next.energy=0; next.tosaSanpanActive=true; logs.push(`自己破産手続き！敵エナジー0・HP半分🦊`); }
+      else if (skill.type === 'attack') { let d=skill.value; if(prev.bonsaiNextAttackDouble){d*=2;next.bonsaiNextAttackDouble=false;} newEnemyHp=Math.max(0,newEnemyHp-d); logs.push(`${skill.name}！${d}ダメージ。`); }
       else if (skill.type === 'buff') { newPlayerMonster.hp=Math.min(newPlayerMonster.maxHp,newPlayerMonster.hp+skill.value); logs.push(`${skill.name}！HP+${skill.value}回復。`); }
 
       if (skill.type === 'attack' && activePlayer.id === GORYO_ID && !['s9','s11','s12','s13','s32'].includes(skill.id))
@@ -464,6 +468,9 @@ export default function OnlineBattleScreen({ isHost, roomCode, myTeam, opponentT
       enemySpriteRef.current?.playAnimation('SKILL');
     }
 
+    // shake は updater 外で呼ぶ
+    if (skill.type === 'attack') shake('player');
+
     setGameState(prev => {
       const enemy  = prev.enemyTeam[prev.activeEnemyIndex];
       const player = prev.playerTeam[prev.activePlayerIndex];
@@ -516,7 +523,6 @@ export default function OnlineBattleScreen({ isHost, roomCode, myTeam, opponentT
         next.earthquakeProofActive = false; rawDamage = 0; logs.push(`耐震偽装！ダメージ無効！`);
       }
 
-      shake('player');
       if (player.id === GORYO_ID) playerGoryoRef.current?.playAnimation('DAMAGE');
 
       if (prev.bonsaiGuardThisTurn) rawDamage = Math.max(0, rawDamage - 10);

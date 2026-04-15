@@ -7,7 +7,7 @@ import { supabase } from '../supabase';
 import { MONSTERS } from '../constants';
 import { Monster } from '../types';
 import CharacterSprite from './CharacterSprite';
-import { ChevronLeft, Wifi, Copy, Check, Loader } from 'lucide-react';
+import { ChevronLeft, Wifi, Copy, Check, Loader, CheckCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 type Phase = 'choose' | 'hosting' | 'joining' | 'team-select' | 'waiting';
@@ -39,8 +39,11 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
   const [error, setError]       = useState('');
   const [copied, setCopied]     = useState(false);
   const [myTeamSent, setMyTeamSent] = useState(false);
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const codeRef    = useRef('');
+  const [timeLeft, setTimeLeft] = useState(30);
+  const channelRef  = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const codeRef     = useRef('');
+  const myTeamRef   = useRef<Monster[]>([]);
+  useEffect(() => { myTeamRef.current = myTeam; }, [myTeam]);
 
   useEffect(() => () => {
     if (channelRef.current) supabase.removeChannel(channelRef.current);
@@ -54,6 +57,41 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
       }, 800);
     }
   }, [phase, myTeamSent, opponentTeam]);
+
+  // チーム選択30秒タイマー
+  useEffect(() => {
+    if (phase !== 'team-select') return;
+    setTimeLeft(30);
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [phase]);
+
+  // タイムアップ時に自動決定
+  useEffect(() => {
+    if (phase !== 'team-select' || timeLeft !== 0) return;
+    // 足りない分をランダムで補充して確定
+    let team = [...myTeamRef.current];
+    if (team.length < 3) {
+      const rest = ALL_MONSTERS.filter(m => !team.find(t => t.id === m.id));
+      const shuffled = rest.sort(() => 0.5 - Math.random());
+      team = [...team, ...shuffled.slice(0, 3 - team.length)];
+    }
+    if (!channelRef.current) return;
+    const event = isHost ? 'HOST_TEAM' : 'GUEST_TEAM';
+    channelRef.current.send({ type: 'broadcast', event, payload: { team } });
+    setMyTeam(team);
+    setMyTeamSent(true);
+    setPhase('waiting');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, phase]);
 
   const createRoom = () => {
     const code = genCode();
@@ -192,7 +230,21 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
         {phase === 'team-select' && (
           <div className="flex flex-col h-full">
             <div className="p-4 border-b border-white/10 bg-neutral-800/50">
-              <p className="text-center font-black text-lg">チームを選んでください（3体）</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="font-black text-lg">チームを選んでください（3体）</p>
+                <div className="flex items-center gap-2">
+                  {opponentTeam.length === 3 && (
+                    <div className="flex items-center gap-1 bg-green-600/20 border border-green-500/40 px-2 py-1 rounded-full">
+                      <CheckCircle size={12} className="text-green-400" />
+                      <span className="text-[10px] font-bold text-green-400">相手準備完了</span>
+                    </div>
+                  )}
+                  <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-black text-sm
+                    ${timeLeft <= 10 ? 'border-red-500 text-red-400 animate-pulse' : 'border-yellow-500 text-yellow-400'}`}>
+                    {timeLeft}
+                  </div>
+                </div>
+              </div>
               <div className="flex justify-center gap-3 mt-3">
                 {[0,1,2].map(i => (
                   <div key={i} className={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center

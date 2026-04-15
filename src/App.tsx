@@ -228,16 +228,18 @@ export default function App() {
       )}
 
       {view === 'online-battle' && onlineConfig && (
-        <OnlineBattleScreen
-          isHost={onlineConfig.isHost}
-          roomCode={onlineConfig.roomCode}
-          myTeam={onlineConfig.myTeam}
-          opponentTeam={onlineConfig.opponentTeam}
-          onBack={() => {
-            setOnlineConfig(null);
-            setView('menu');
-          }}
-        />
+        <ErrorBoundary>
+          <OnlineBattleScreen
+            isHost={onlineConfig.isHost}
+            roomCode={onlineConfig.roomCode}
+            myTeam={onlineConfig.myTeam}
+            opponentTeam={onlineConfig.opponentTeam}
+            onBack={() => {
+              setOnlineConfig(null);
+              setView('menu');
+            }}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Reward Modal */}
