@@ -29,12 +29,13 @@ interface MainMenuProps {
   onOpenShop: () => void;
   onOpenWorld: () => void;
   onOpenOnline: () => void;
+  onStartRandomBattle: () => void;
   equippedMonster: Monster;
   hearts: number;
   winStreak: number;
 }
 
-export default function MainMenu({ onStartBattle, onOpenCharacters, onOpenShop, onOpenWorld, onOpenOnline, equippedMonster, hearts, winStreak }: MainMenuProps) {
+export default function MainMenu({ onStartBattle, onOpenCharacters, onOpenShop, onOpenWorld, onOpenOnline, onStartRandomBattle, equippedMonster, hearts, winStreak }: MainMenuProps) {
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-blue-600 to-indigo-900 text-white flex flex-col font-sans overflow-hidden">
       {/* Top Bar */}
@@ -136,9 +137,9 @@ export default function MainMenu({ onStartBattle, onOpenCharacters, onOpenShop, 
           />
         </div>
 
-        {/* Right Side: Battle (Online) */}
+        {/* Right Side: Random Battle */}
         <button
-          onClick={onOpenOnline}
+          onClick={onStartRandomBattle}
           className="group relative"
         >
           <div className="absolute inset-0 bg-yellow-400 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />

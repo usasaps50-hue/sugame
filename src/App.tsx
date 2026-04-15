@@ -40,6 +40,7 @@ export default function App() {
   const [winStreak, setWinStreak] = useState(0);
   const [showRewardModal, setShowRewardModal] = useState<Reward | null>(null);
   const [onlineConfig, setOnlineConfig] = useState<OnlineBattleConfig | null>(null);
+  const [lobbyMode, setLobbyMode] = useState<'normal' | 'random'>('normal');
 
   // Initialize player team with equipped monsters
   useEffect(() => {
@@ -164,7 +165,8 @@ export default function App() {
           onOpenCharacters={() => setView('character-list')}
           onOpenShop={() => setView('shop')}
           onOpenWorld={() => setView('world')}
-          onOpenOnline={() => setView('online-lobby')}
+          onOpenOnline={() => { setLobbyMode('normal'); setView('online-lobby'); }}
+          onStartRandomBattle={() => { setLobbyMode('random'); setView('online-lobby'); }}
           equippedMonster={equippedMonster}
           hearts={hearts}
           winStreak={winStreak}
@@ -219,6 +221,7 @@ export default function App() {
 
       {view === 'online-lobby' && (
         <OnlineLobby
+          mode={lobbyMode}
           onBack={() => setView('menu')}
           onStartBattle={(config) => {
             setOnlineConfig(config);

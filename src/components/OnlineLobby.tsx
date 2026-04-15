@@ -7,10 +7,10 @@ import { supabase } from '../supabase';
 import { MONSTERS } from '../constants';
 import { Monster } from '../types';
 import CharacterSprite from './CharacterSprite';
-import { ChevronLeft, Wifi, Copy, Check, Loader, CheckCircle } from 'lucide-react';
-import { motion } from 'motion/react';
+import { ChevronLeft, Wifi, Copy, Loader, CheckCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
-type Phase = 'choose' | 'hosting' | 'joining' | 'team-select' | 'waiting';
+type Phase = 'choose' | 'hosting' | 'joining' | 'random-searching' | 'team-select' | 'waiting';
 
 interface OnlineLobbyProps {
   onBack: () => void;
@@ -20,6 +20,7 @@ interface OnlineLobbyProps {
     myTeam: Monster[];
     opponentTeam: Monster[];
   }) => void;
+  mode?: 'normal' | 'random';
 }
 
 const ALL_MONSTERS = MONSTERS.map(m => ({ ...m, hp: m.maxHp }));
@@ -28,7 +29,7 @@ function genCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps) {
+export default function OnlineLobby({ onBack, onStartBattle, mode = 'normal' }: OnlineLobbyProps) {
   const [phase, setPhase]       = useState<Phase>('choose');
   const [roomCode, setRoomCode] = useState('');
   const [inputCode, setInputCode] = useState('');
@@ -37,16 +38,22 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
   const [opponentTeam, setOpponentTeam] = useState<Monster[]>([]);
   const [status, setStatus]     = useState('');
   const [error, setError]       = useState('');
-  const [copied, setCopied]     = useState(false);
   const [myTeamSent, setMyTeamSent] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
+  const [toastMsg, setToastMsg] = useState('');
+
   const channelRef  = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const matchChRef  = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const codeRef     = useRef('');
   const myTeamRef   = useRef<Monster[]>([]);
+  const matchedRef  = useRef(false);
+  const toastTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => { myTeamRef.current = myTeam; }, [myTeam]);
 
   useEffect(() => () => {
     if (channelRef.current) supabase.removeChannel(channelRef.current);
+    if (matchChRef.current) supabase.removeChannel(matchChRef.current);
   }, []);
 
   // 両チーム揃ったらバトル開始
@@ -56,6 +63,7 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
         onStartBattle({ isHost, roomCode: codeRef.current, myTeam, opponentTeam });
       }, 800);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, myTeamSent, opponentTeam]);
 
   // チーム選択30秒タイマー
@@ -64,10 +72,7 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
     setTimeLeft(30);
     const timer = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
+        if (prev <= 1) { clearInterval(timer); return 0; }
         return prev - 1;
       });
     }, 1000);
@@ -77,12 +82,10 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
   // タイムアップ時に自動決定
   useEffect(() => {
     if (phase !== 'team-select' || timeLeft !== 0) return;
-    // 足りない分をランダムで補充して確定
     let team = [...myTeamRef.current];
     if (team.length < 3) {
-      const rest = ALL_MONSTERS.filter(m => !team.find(t => t.id === m.id));
-      const shuffled = rest.sort(() => 0.5 - Math.random());
-      team = [...team, ...shuffled.slice(0, 3 - team.length)];
+      const rest = ALL_MONSTERS.filter(m => !team.find(t => t.id === m.id)).sort(() => 0.5 - Math.random());
+      team = [...team, ...rest.slice(0, 3 - team.length)];
     }
     if (!channelRef.current) return;
     const event = isHost ? 'HOST_TEAM' : 'GUEST_TEAM';
@@ -93,6 +96,100 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, phase]);
 
+  // ランダムモード: マウント時に自動スタート
+  useEffect(() => {
+    if (mode === 'random') startRandomSearch();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── トースト ──────────────────────────────────────────────────────────
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastMsg(''), 2500);
+  };
+
+  const copyCode = () => {
+    try {
+      navigator.clipboard.writeText(roomCode)
+        .then(() => showToast('コードをコピーしました！📋'))
+        .catch(() => showToast('コードをコピーしました！📋'));
+    } catch {
+      showToast('コードをコピーしました！📋');
+    }
+  };
+
+  // ── ロビーチャンネルセットアップ（ランダムマッチ用）──────────────────
+  const setupLobbyChannel = (code: string, amHost: boolean) => {
+    const ch = supabase.channel(`lobby:${code}`, { config: { broadcast: { self: false } } });
+    channelRef.current = ch;
+
+    if (amHost) {
+      ch.on('broadcast', { event: 'GUEST_TEAM' }, ({ payload }: any) => {
+        setOpponentTeam(payload.team);
+      });
+    } else {
+      ch.on('broadcast', { event: 'HOST_TEAM' }, ({ payload }: any) => {
+        setOpponentTeam(payload.team);
+      });
+    }
+
+    ch.subscribe(() => {
+      setPhase('team-select');
+    });
+  };
+
+  // ── ランダムマッチング ────────────────────────────────────────────────
+  const startRandomSearch = () => {
+    const myCode = genCode();
+    codeRef.current = myCode;
+    setRoomCode(myCode);
+    matchedRef.current = false;
+    setPhase('random-searching');
+    setError('');
+
+    const matchCh = supabase.channel('random-matchmaking', {
+      config: { presence: { key: myCode } },
+    });
+    matchChRef.current = matchCh;
+
+    matchCh.on('presence', { event: 'sync' }, () => {
+      if (matchedRef.current) return;
+      const state = matchCh.presenceState<{ ts: number }>();
+      const others = Object.keys(state).filter(k => k !== myCode);
+      if (others.length === 0) return;
+
+      matchedRef.current = true;
+      const opponentCode = others.sort()[0];
+      const amIHost = myCode > opponentCode;
+      const battleCode = amIHost ? myCode : opponentCode;
+
+      codeRef.current = battleCode;
+      setIsHost(amIHost);
+      setRoomCode(battleCode);
+      setStatus('マッチング成功！');
+
+      // マッチングチャンネルを離脱
+      matchCh.untrack().finally(() => {
+        supabase.removeChannel(matchCh);
+        matchChRef.current = null;
+      });
+
+      // バトルロビーへ
+      setupLobbyChannel(battleCode, amIHost);
+    });
+
+    matchCh.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await matchCh.track({ ts: Date.now() });
+      } else if (status === 'CHANNEL_ERROR') {
+        setError('接続エラーが発生しました');
+        setPhase('choose');
+      }
+    });
+  };
+
+  // ── フレンドマッチ ────────────────────────────────────────────────────
   const createRoom = () => {
     const code = genCode();
     codeRef.current = code;
@@ -109,7 +206,6 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
       setStatus('相手が接続しました！');
       setPhase('team-select');
     });
-
     ch.on('broadcast', { event: 'GUEST_TEAM' }, ({ payload }: any) => {
       setOpponentTeam(payload.team);
     });
@@ -161,25 +257,37 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
     setPhase('waiting');
   };
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(roomCode).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
   return (
     <div className="fixed inset-0 bg-neutral-900 text-white flex flex-col font-sans overflow-hidden">
+
+      {/* トースト通知 */}
+      <AnimatePresence>
+        {toastMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-neutral-700 text-white px-5 py-3 rounded-2xl shadow-xl text-sm font-bold border border-white/10 whitespace-nowrap"
+          >
+            {toastMsg}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ヘッダー */}
       <div className="p-4 flex items-center gap-3 border-b border-white/10 bg-neutral-800/60 backdrop-blur-md">
         <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full transition-colors">
           <ChevronLeft size={24} />
         </button>
         <Wifi size={20} className="text-blue-400" />
-        <h1 className="text-lg font-black">オンライン対戦</h1>
+        <h1 className="text-lg font-black">
+          {mode === 'random' ? 'ランダムマッチ' : 'オンライン対戦'}
+        </h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
 
+        {/* フレンドマッチ選択画面 */}
         {phase === 'choose' && (
           <div className="flex flex-col items-center justify-center h-full gap-8 p-8">
             <div className="text-center">
@@ -208,6 +316,24 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
           </div>
         )}
 
+        {/* ランダムマッチング待機中 */}
+        {phase === 'random-searching' && (
+          <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full border-4 border-yellow-500/30 border-t-yellow-400 animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center text-3xl">⚔️</div>
+            </div>
+            <p className="text-xl font-black">対戦相手を探しています...</p>
+            <p className="text-xs opacity-40">しばらくお待ちください</p>
+            {error && <p className="text-red-400 text-xs text-center bg-red-900/20 p-3 rounded-xl">{error}</p>}
+            <motion.button whileTap={{ scale: 0.95 }} onClick={onBack}
+              className="mt-4 px-8 py-3 bg-neutral-700 rounded-2xl font-bold text-sm border border-white/10">
+              キャンセル
+            </motion.button>
+          </div>
+        )}
+
+        {/* フレンドマッチ: ルーム作成/参加待機 */}
         {(phase === 'hosting' || phase === 'joining') && (
           <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
             <Loader size={48} className="text-blue-400 animate-spin" />
@@ -216,17 +342,18 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
               <div className="bg-neutral-800 rounded-2xl p-6 w-full max-w-xs border border-white/10 text-center">
                 <p className="text-xs opacity-50 mb-2">ルームコード（友達に伝える）</p>
                 <p className="text-5xl font-black tracking-[0.4em] text-yellow-400 mb-4">{roomCode}</p>
-                <button onClick={copyCode}
+                <motion.button whileTap={{ scale: 0.95 }} onClick={copyCode}
                   className="flex items-center gap-2 mx-auto text-sm bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-colors">
-                  {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
-                  {copied ? 'コピーしました！' : 'コピー'}
-                </button>
+                  <Copy size={14} />
+                  コピー
+                </motion.button>
               </div>
             )}
             {error && <p className="text-red-400 text-xs text-center">{error}</p>}
           </div>
         )}
 
+        {/* チーム選択 */}
         {phase === 'team-select' && (
           <div className="flex flex-col h-full">
             <div className="p-4 border-b border-white/10 bg-neutral-800/50">
@@ -279,6 +406,7 @@ export default function OnlineLobby({ onBack, onStartBattle }: OnlineLobbyProps)
           </div>
         )}
 
+        {/* 待機中 */}
         {phase === 'waiting' && (
           <div className="flex flex-col items-center justify-center h-full gap-6 p-8">
             <div className="flex gap-3">
