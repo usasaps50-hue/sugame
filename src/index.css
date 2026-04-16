@@ -2,7 +2,7 @@
 
 @theme {
   --font-sans: 'Segoe UI', 'Hiragino Kaku Gothic ProN', sans-serif;
-
+  
   --color-bg-deep: #120B2E;
   --color-bg-panel: #22184A;
   --color-accent-cyan: #00F0FF;
@@ -18,14 +18,25 @@
     background-color: var(--color-bg-deep);
   }
 
-  ::-webkit-scrollbar { width: 8px; height: 8px; }
-  ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
-  ::-webkit-scrollbar-thumb { background: var(--color-accent-cyan); border-radius: 10px; opacity: 0.5; }
+  /* Custom scrollbar for game feel */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-accent-cyan);
+    border-radius: 10px;
+    opacity: 0.5;
+  }
 }
 
 @layer utilities {
   .drop-shadow-glow {
-    filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.5));
+    filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.4));
   }
   .bg-game-radial {
     background: radial-gradient(circle at 50% 50%, #2A1A5E 0%, #120B2E 100%);
