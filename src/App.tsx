@@ -218,14 +218,10 @@ function HomeScreen({ onGoTo, burgers, hearts, selectedChar, selectedMode, selec
 
         {/* Side Buttons (Left) */}
         <div className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col gap-4">
-          <SideButton icon={<ShoppingBag />} label="SHOP" onClick={() => onGoTo('shop')} color="border-accent-pink text-accent-pink" />
-          <SideButton icon={<Users />} label="CHARS" onClick={() => onGoTo('characters')} color="border-accent-cyan text-accent-cyan" />
-          <SideButton icon={<Zap />} label="SKINS" onClick={() => onGoTo('shop')} color="border-accent-yellow text-accent-yellow" />
-        </div>
-
-        {/* Right Side Buttons */}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col gap-4">
-          <SideButton icon={<Gamepad2 />} label="STORE" onClick={() => {}} color="border-accent-cyan text-accent-cyan" isSpecial />
+          <SideButton icon={<ShoppingBag />} label="ショップ" onClick={() => onGoTo('shop')} color="border-accent-pink text-accent-pink" />
+          <SideButton icon={<Users />} label="キャラ" onClick={() => onGoTo('characters')} color="border-accent-cyan text-accent-cyan" />
+          <SideButton icon={<Zap />} label="スキン" onClick={() => onGoTo('shop')} color="border-accent-yellow text-accent-yellow" />
+          <SideButton icon={<Gamepad2 />} label="ストア" onClick={() => onGoTo('shop')} color="border-accent-cyan text-accent-cyan" isSpecial />
         </div>
       </div>
 
@@ -294,60 +290,104 @@ function SideButton({ icon, label, onClick, color, isSpecial }: any) {
 }
 
 function ShopScreen({ onBack, burgers, hearts }: any) {
-  return (
-    <motion.div 
-      initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-      className="absolute inset-0 bg-game-radial p-8 flex flex-col"
-    >
-      <div className="flex justify-between items-center mb-8 opacity-0 pointer-events-none h-0 overflow-hidden">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-3 bg-white/20 rounded-2xl hover:bg-white/30 transition-colors">
-            <ChevronLeft size={32} />
-          </button>
-        </div>
-        <div className="flex gap-4">
-          <CurrencyBadge icon="🍔" value={burgers} />
-          <CurrencyBadge icon="♡" value={hearts} />
-        </div>
-      </div>
+  const paidSkins = SKINS.filter(s => s.priceBurgers > 0);
+  const paidChars = INITIAL_CHARACTERS;
 
-      {/* Floating Back Button for navigation */}
+  return (
+    <motion.div
+      initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+      className="absolute inset-0 bg-game-radial flex flex-col"
+    >
+      {/* 戻るボタン */}
       <button onClick={onBack} className="absolute top-6 left-6 z-50 p-3 bg-bg-panel/80 backdrop-blur-md rounded-2xl border border-accent-cyan/30 hover:bg-bg-panel transition-colors text-accent-cyan">
         <ChevronLeft size={32} />
       </button>
 
-      <div className="flex-1 overflow-x-auto flex gap-6 pb-8 items-center">
-        {SKINS.filter(s => s.priceBurgers > 0).map((skin, i) => (
-          <motion.div 
-            key={skin.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="min-w-[280px] h-[420px] bg-gradient-to-br from-accent-cyan/10 to-accent-pink/10 backdrop-blur-md rounded-[30px] border-2 border-accent-cyan p-6 flex flex-col items-center justify-between relative overflow-hidden group shadow-[0_0_20px_rgba(0,240,255,0.2)]"
-          >
-            {/* Hologram Effect */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-            
-            {skin.timeLeft && (
-              <div className="absolute top-4 right-4 bg-accent-pink px-3 py-1 rounded-full text-[10px] font-bold animate-pulse text-white">
-                ⏰ {skin.timeLeft}
-              </div>
-            )}
+      {/* 通貨バッジ */}
+      <div className="absolute top-6 right-6 z-50 flex gap-3">
+        <CurrencyBadge icon="🍔" value={burgers} />
+        <CurrencyBadge icon="♡" value={hearts} />
+      </div>
 
-            <div className="text-8xl mt-8 group-hover:scale-110 transition-transform drop-shadow-glow">{skin.image}</div>
-            
-            <div className="w-full text-center">
-              <h3 className="text-2xl font-black mb-1 text-accent-cyan">{skin.name}</h3>
-              <p className="text-xs text-accent-pink uppercase font-bold tracking-widest mb-4">Epic Skin</p>
-              
-              <Button className="w-full flex items-center justify-center gap-2 !py-4" variant="primary">
-                <span>🍔 {skin.priceBurgers}</span>
-                <span className="opacity-30">|</span>
-                <span>♡ {skin.priceHearts}</span>
-              </Button>
-            </div>
-          </motion.div>
-        ))}
+      {/* 上半分：スキン */}
+      <div className="flex-1 flex flex-col pt-20 px-6 pb-3 border-b border-white/10">
+        <div className="flex items-center gap-3 mb-4">
+          <Zap size={20} className="text-accent-yellow" />
+          <span className="font-black uppercase tracking-widest text-sm text-accent-yellow">スキン</span>
+        </div>
+        {paidSkins.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center opacity-30">
+            <p className="font-black uppercase tracking-widest text-sm">準備中...</p>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-x-auto flex gap-4 pb-2 items-center">
+            {paidSkins.map((skin, i) => (
+              <motion.div
+                key={skin.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="min-w-[220px] h-full bg-gradient-to-br from-accent-yellow/10 to-accent-pink/10 backdrop-blur-md rounded-[24px] border-2 border-accent-yellow p-5 flex flex-col items-center justify-between relative overflow-hidden group shadow-[0_0_20px_rgba(255,245,0,0.15)]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                {skin.timeLeft && (
+                  <div className="absolute top-3 right-3 bg-accent-pink px-2 py-0.5 rounded-full text-[10px] font-bold animate-pulse text-white">
+                    ⏰ {skin.timeLeft}
+                  </div>
+                )}
+                <div className="text-7xl mt-4 group-hover:scale-110 transition-transform drop-shadow-glow">{skin.image}</div>
+                <div className="w-full text-center">
+                  <h3 className="text-lg font-black mb-1 text-accent-yellow">{skin.name}</h3>
+                  <p className="text-[10px] text-accent-pink uppercase font-bold tracking-widest mb-3">スキン</p>
+                  <Button className="w-full !py-3 !text-sm" variant="primary">
+                    <span>🍔 {skin.priceBurgers}</span>
+                    <span className="opacity-30 mx-1">|</span>
+                    <span>♡ {skin.priceHearts}</span>
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 下半分：キャラクター */}
+      <div className="flex-1 flex flex-col px-6 pt-3 pb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Users size={20} className="text-accent-cyan" />
+          <span className="font-black uppercase tracking-widest text-sm text-accent-cyan">キャラクター</span>
+        </div>
+        {paidChars.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center opacity-30">
+            <p className="font-black uppercase tracking-widest text-sm">準備中...</p>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-x-auto flex gap-4 pb-2 items-center">
+            {paidChars.map((char: any, i: number) => (
+              <motion.div
+                key={char.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="min-w-[200px] h-full bg-gradient-to-br from-accent-cyan/10 to-accent-pink/10 backdrop-blur-md rounded-[24px] border-2 border-accent-cyan p-5 flex flex-col items-center justify-between relative overflow-hidden group shadow-[0_0_20px_rgba(0,240,255,0.15)]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <div className="text-7xl mt-4 group-hover:scale-110 transition-transform drop-shadow-glow">
+                  {SKINS.find(s => s.charId === char.id)?.image || '❓'}
+                </div>
+                <div className="w-full text-center">
+                  <div className="mb-1 px-2 py-0.5 bg-accent-cyan/20 text-accent-cyan inline-block rounded text-[10px] font-black uppercase tracking-widest">
+                    {char.rarity}
+                  </div>
+                  <h3 className="text-lg font-black mb-1 text-white">{char.name}</h3>
+                  <Button className="w-full !py-3 !text-sm mt-2" variant="secondary">
+                    <span>🍔 {char.hp}</span>
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -417,10 +457,8 @@ function CharacterSelectScreen({ onBack, onSelect, characters }: any) {
 }
 
 function CharacterDetailScreen({ onBack, character, onSelect }: any) {
-  const [activeSkin, setActiveSkin] = useState(0);
-
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
       className="absolute inset-0 bg-game-radial p-8 flex"
     >
@@ -452,26 +490,13 @@ function CharacterDetailScreen({ onBack, character, onSelect }: any) {
       {/* Center Column: Visual */}
       <div className="flex-1 flex flex-col items-center justify-center relative">
         <div className="absolute inset-0 bg-radial-gradient from-accent-cyan/20 to-transparent opacity-30 pointer-events-none" />
-        <motion.div 
+        <motion.div
           animate={{ y: [0, -20, 0], rotate: [0, 2, -2, 0] }}
           transition={{ duration: 4, repeat: Infinity }}
           className="text-[200px] drop-shadow-[0_35px_35px_rgba(0,0,0,0.6)] z-10"
         >
-          {SKINS.find(s => s.id === character.skins[activeSkin])?.image || '🍔'}
+          {SKINS.find(s => s.charId === character.id)?.image || '❓'}
         </motion.div>
-        
-        {/* Skin Selector */}
-        <div className="mt-12 flex gap-3 z-10">
-          {character.skins.map((sId: string, i: number) => (
-            <button 
-              key={sId}
-              onClick={() => setActiveSkin(i)}
-              className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-2xl transition-all ${activeSkin === i ? 'bg-accent-cyan/20 border-accent-cyan scale-110 shadow-[0_0_15px_rgba(0,240,255,0.5)]' : 'bg-white/5 border-white/10 opacity-50'}`}
-            >
-              {SKINS.find(s => s.id === sId)?.image}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Right Column: Stats */}
