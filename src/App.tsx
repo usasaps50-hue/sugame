@@ -32,7 +32,7 @@ export default function App() {
   const [monsters, setMonsters] = useState<Monster[]>(MONSTERS);
   const [stages, setStages] = useState<Stage[]>(STAGES);
   const [rewards, setRewards] = useState<Reward[]>(INITIAL_REWARDS);
-  const [selectedMonster, setSelectedMonster] = useState<Monster>(MONSTERS[0]);
+  const [selectedMonster, setSelectedMonster] = useState<Monster | null>(MONSTERS[0] || null);
   const [playerTeam, setPlayerTeam] = useState<Monster[]>([]);
   const [enemyTeam, setEnemyTeam] = useState<Monster[]>([]);
   
@@ -154,8 +154,10 @@ export default function App() {
     }));
   };
 
-  const currentSelected = monsters.find(m => m.id === selectedMonster.id) || selectedMonster;
-  const equippedMonster = playerTeam[0] || monsters[0];
+  const currentSelected = selectedMonster
+    ? (monsters.find(m => m.id === selectedMonster.id) || selectedMonster)
+    : null;
+  const equippedMonster = playerTeam[0] || monsters[0] || null;
 
   return (
     <div className="w-full h-screen bg-black overflow-hidden">
@@ -167,7 +169,7 @@ export default function App() {
           onOpenWorld={() => setView('world')}
           onOpenOnline={() => { setLobbyMode('normal'); setView('online-lobby'); }}
           onStartRandomBattle={() => { setLobbyMode('random'); setView('online-lobby'); }}
-          equippedMonster={equippedMonster}
+          equippedMonster={equippedMonster ?? null}
           hearts={hearts}
           winStreak={winStreak}
         />
@@ -184,8 +186,8 @@ export default function App() {
         />
       )}
 
-      {view === 'character-detail' && (
-        <CharacterDetail 
+      {view === 'character-detail' && currentSelected && (
+        <CharacterDetail
           monster={currentSelected}
           onBack={() => setView('character-list')}
           onEquip={handleEquip}

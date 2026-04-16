@@ -20,7 +20,6 @@ import {
   Wifi,
   Menu as MenuIcon
 } from 'lucide-react';
-import { MONSTERS } from '../constants';
 import { Monster } from '../types';
 
 interface MainMenuProps {
@@ -30,7 +29,7 @@ interface MainMenuProps {
   onOpenWorld: () => void;
   onOpenOnline: () => void;
   onStartRandomBattle: () => void;
-  equippedMonster: Monster;
+  equippedMonster: Monster | null;
   hearts: number;
   winStreak: number;
 }
@@ -74,35 +73,41 @@ export default function MainMenu({ onStartBattle, onOpenCharacters, onOpenShop, 
         </div>
 
         <motion.div
-          animate={{ 
+          animate={{
             y: [0, -15, 0],
             rotate: [-1, 1, -1]
           }}
-          transition={{ 
-            duration: 5, 
-            repeat: Infinity, 
-            ease: "easeInOut" 
+          transition={{
+            duration: 5,
+            repeat: Infinity,
+            ease: "easeInOut"
           }}
           className="relative z-10"
         >
-          <div 
-            className="w-64 h-64 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: `${equippedMonster.color}20` }}
+          <div
+            className="w-64 h-64 rounded-full flex items-center justify-center border-4 border-white/10"
+            style={{ backgroundColor: equippedMonster ? `${equippedMonster.color}20` : 'rgba(255,255,255,0.05)' }}
           >
-             <div className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">
-               {/* In a real app, this would be a large sprite/model */}
-               <Sword size={180} style={{ color: equippedMonster.color }} />
-             </div>
+            <div className="text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">
+              {equippedMonster
+                ? <Sword size={180} style={{ color: equippedMonster.color }} />
+                : <Sword size={180} className="opacity-20" />
+              }
+            </div>
           </div>
         </motion.div>
 
         <div className="mt-8 text-center z-10">
           <div className="flex items-center justify-center gap-2 mb-1">
             <Star size={16} className="text-yellow-400 fill-yellow-400" />
-            <h2 className="text-3xl font-black italic uppercase tracking-tighter">{equippedMonster.name}</h2>
+            <h2 className="text-3xl font-black italic uppercase tracking-tighter">
+              {equippedMonster ? equippedMonster.name : 'キャラクターなし'}
+            </h2>
           </div>
           <div className="bg-black/40 backdrop-blur-md px-6 py-1 rounded-full border border-white/10 inline-block">
-            <p className="text-xs font-bold uppercase tracking-widest opacity-80">パワー 11</p>
+            <p className="text-xs font-bold uppercase tracking-widest opacity-80">
+              {equippedMonster ? 'パワー 11' : 'キャラクターを追加してください'}
+            </p>
           </div>
         </div>
       </div>

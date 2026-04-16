@@ -29,7 +29,12 @@
       "mcp__github__get_file_contents",
       "Bash(git remote:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "mcp__github__search_repositories",
+      "Bash(firebase --version)",
+      "Bash(firebase projects:list)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
     ]
   }
 }
